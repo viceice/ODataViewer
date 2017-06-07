@@ -33,7 +33,10 @@ namespace DataServicesViewer
         public Shell()
         {
             InitializeComponent();
-            client = new WebClient();
+            client = new WebClient()
+            {
+                UseDefaultCredentials = true
+            };
             EntityTree.AfterSelect += new TreeViewEventHandler(EntityTree_AfterSelect);
             dscf = new DataServiceConfigForm();
             txbQuery.KeyDown += txbQuery_KeyDown;

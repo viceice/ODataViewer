@@ -38,7 +38,7 @@ namespace DataServicesViewer
         public EntitySet(string name , string entityType) : this()
         {
             this.Name       = name;
-            NameType        = entityType.Split('.').Last();
+            NameType = entityType;//.Split('.').Last();
             Entity.NameType = NameType;
             Entity.Name     = NameType;
         }

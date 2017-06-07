@@ -14,7 +14,7 @@ namespace DataServicesViewer
         // const string EDMNS = "{http://schemas.microsoft.com/ado/2006/04/edm}";
 
         // .NET 3.5 & 4.0
-        const string EDMNS = "{http://schemas.microsoft.com/ado/2008/09/edm}";
+        static readonly XNamespace EDMNS = "http://schemas.microsoft.com/ado/2009/11/edm";
 
         Uri ServiceUri;
         WebClient proxy;
@@ -23,12 +23,12 @@ namespace DataServicesViewer
         public event EventHandler ReadCompleted;
         public EntityContainer model;
 
-        public MetaData( string ServiceUrl )
+        public MetaData(string ServiceUrl)
         {
-            this.ServiceUri = new Uri( ServiceUrl );
-            proxy           = new WebClient();
-            XmlDoc          = new XDocument();
-            model           = new EntityContainer();
+            this.ServiceUri = new Uri(ServiceUrl);
+            proxy = new WebClient { UseDefaultCredentials = true };
+            XmlDoc = new XDocument();
+            model = new EntityContainer();
 
             proxy.OpenReadAsync(ServiceUri);
             proxy.OpenReadCompleted += new OpenReadCompletedEventHandler(proxy_OpenReadCompleted);
@@ -38,7 +38,7 @@ namespace DataServicesViewer
         {
             using (StreamReader sr = new StreamReader(e.Result))
             {
-                XmlDoc = XDocument.Parse( sr.ReadToEnd() );
+                XmlDoc = XDocument.Parse(sr.ReadToEnd());
             }
             BuildModel();
         }
@@ -48,7 +48,7 @@ namespace DataServicesViewer
         {
             if (XmlDoc.Root != null)
             {
-                var entityContainer = XmlDoc.Root.Descendants( EDMNS + "EntityContainer");
+                var entityContainer = XmlDoc.Root.Descendants(EDMNS + "EntityContainer");
                 if (entityContainer != null)
                 {
                     model.Name = entityContainer
@@ -61,11 +61,11 @@ namespace DataServicesViewer
         }
         void BuildEntitySets()
         {
-            foreach (var item in XmlDoc.Root.Descendants(EDMNS + "EntitySet") )
+            foreach (var item in XmlDoc.Root.Descendants(EDMNS + "EntitySet"))
             {
                 model.EntitySets.Add(
                     item.Attribute("Name").Value,
-                    new EntitySet( 
+                    new EntitySet(
                         item.Attribute("Name").Value,
                         item.Attribute("EntityType").Value));
             }
@@ -75,29 +75,39 @@ namespace DataServicesViewer
 
         void BuildAssociationSet()
         {
-            foreach ( var item in XmlDoc.Root.Descendants( EDMNS + "AssociationSet" ) )
+            foreach (var schema in XmlDoc.Root.Descendants(EDMNS + "Schema"))
             {
-                string key = item.Attribute( "Name" ).Value;
-                model.AssociationSet.Add( key , new Association() );
+                var ns = schema.Attribute("Namespace").Value;
 
-                foreach ( var er in item.Elements() )
+                foreach (var item in schema.Descendants(EDMNS + "AssociationSet"))
                 {
-                    model.AssociationSet[key].EndRoles.Add(
-                        new EndRole
-                        {
-                            Role      = er.Attribute( "Role" ).Value,
-                            EntitySet = er.Attribute( "EntitySet" ).Value
-                        }
-                    );
-                }
+                    string key = item.Attribute("Association")?.Value ?? ns + "." + item.Attribute("Name").Value;
+                    var ass = new Association();
+                    model.AssociationSet.Add(key,ass);
+
+                    foreach (var er in item.Elements())
+                    {
+                        ass.EndRoles.Add(
+                            new EndRole
+                            {
+                                Role = er.Attribute("Role").Value,
+                                EntitySet = er.Attribute("EntitySet").Value
+                            }
+                        );
+                    }
+                } 
             }
         }
         void BuildEntities()
         {
             Dictionary<string, XElement> EntityTypes = new Dictionary<string, XElement>();
-            foreach (var et in XmlDoc.Root.Descendants(EDMNS + "EntityType"))
+            foreach (var schema in XmlDoc.Root.Descendants(EDMNS + "Schema"))
             {
-                EntityTypes.Add(et.Attribute("Name").Value, et);
+                var ns = schema.Attribute("Namespace").Value;
+                foreach (var et in schema.Descendants(EDMNS + "EntityType"))
+                {
+                    EntityTypes.Add(ns + "." + et.Attribute("Name").Value, et);
+                }
             }
 
             foreach (var item in model.EntitySets.Values)
@@ -105,61 +115,61 @@ namespace DataServicesViewer
                 XElement xe = EntityTypes[item.NameType];
 
                 BuildEntityKeys(item.Entity, xe);
-                BuildEntityProperties(item.Entity, xe);            
-                BuildEntityNavigationProperties(item.Entity,xe);
+                BuildEntityProperties(item.Entity, xe);
+                BuildEntityNavigationProperties(item.Entity, xe);
             }
 
             if (ReadCompleted != null) ReadCompleted(this, EventArgs.Empty);
         }
         void BuildEntityProperties(Entity e, XElement xe)
-        {            
-            foreach( var prop in xe.Elements(EDMNS + "Property") )
+        {
+            foreach (var prop in xe.Elements(EDMNS + "Property"))
             {
                 Property p = new Property();
 
-                p.Name        = prop.Attribute("Name").Value;
-                p.NameType    = prop.Attribute("Type").Value;
-                p.Nullable    = bool.Parse(prop.Attribute("Nullable").Value);
+                p.Name = prop.Attribute("Name").Value;
+                p.NameType = prop.Attribute("Type").Value;
+                p.Nullable = bool.Parse(prop.Attribute("Nullable")?.Value ?? "true");
                 //p.MaxLength   = int.Parse(prop.Attribute("MaxLength").Value);
                 //p.FixedLength = bool.Parse(prop.Attribute("FixedLength").Value);
                 //p.Unicode     = bool.Parse(prop.Attribute("Unicode").Value);
 
 
-                e.Properties.Add( p.Name , p );
+                e.Properties.Add(p.Name, p);
             }
         }
         void BuildEntityKeys(Entity e, XElement xe)
         {
             XElement keys = xe.Element(EDMNS + "Key");
-            
+
             if (keys == null) return;
 
             foreach (var key in keys.Elements(EDMNS + "PropertyRef"))
             {
                 e.Keys.Add(key.Attribute("Name").Value, key.Attribute("Name").Value);
-            }            
+            }
         }
         void BuildEntityNavigationProperties(Entity e, XElement xe)
-        {         
+        {
             string FromRole;
             string ToRole;
             string Relationship;
             string KeyNav;
 
-            foreach( var navi in xe.Elements(EDMNS + "NavigationProperty") )
+            foreach (var navi in xe.Elements(EDMNS + "NavigationProperty"))
             {
-                KeyNav       = navi.Attribute( "Name" ).Value;
-                FromRole     = navi.Attribute("FromRole").Value;
-                ToRole       = navi.Attribute("ToRole").Value;
-                Relationship = navi.Attribute( "Relationship" ).Value.Split('.').Last();
+                KeyNav = navi.Attribute("Name").Value;
+                FromRole = navi.Attribute("FromRole").Value;
+                ToRole = navi.Attribute("ToRole").Value;
+                Relationship = navi.Attribute("Relationship").Value; //.Split('.').Last();
 
                 Association ass = model.AssociationSet[Relationship];
 
                 string es = (from x in ass.EndRoles
-                               where x.Role == ToRole
-                               select x.EntitySet).First();
+                             where x.Role == ToRole
+                             select x.EntitySet).First();
 
-                e.NavigationProperties.Add( KeyNav, model.EntitySets[es].Entity );
+                e.NavigationProperties.Add(KeyNav, model.EntitySets[es].Entity);
 
 
                 //if ( model.EntitySets.ContainsKey( ToRole ) )
@@ -171,6 +181,6 @@ namespace DataServicesViewer
                 //        navi.Attribute("Name").Value, null );
                 //}
             }
-        }        
+        }
     }
 }
