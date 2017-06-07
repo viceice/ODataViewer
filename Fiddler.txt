@@ -1,0 +1,21 @@
+﻿Why don't I see traffic sent to http://localhost or http://127.0.0.1?
+IE7 and the .NET Framework are hardcoded not to send requests for Localhost through any proxies, 
+and as a proxy, Fiddler will not receive such traffic. 
+
+The workaround is to use your machine name as the hostname instead of Localhost or 127.0.0.1. So, 
+for instance, rather than hitting http://localhost:8081/mytestpage.aspx, instead visit 
+http://machinename:8081/mytestpage.aspx.  
+
+...Or, if you're using Fiddler v2.1.8 or later, just use http://ipv4.fiddler to hit localhost on the 
+IPv4 adapter, or use http://ipv6.fiddler to hit localhost on the IPv6 adapter.  
+This works especially well with the Visual Studio test webserver (codename: Cassini) 
+because the test server only listens on the IPv4 loopback adapter.
+
+Lastly, you could Customize your Rules file like so:
+
+static function OnBeforeRequest(oSession:Fiddler.Session){
+  if (oSession.HostnameIs("MYAPP")) { oSession.host = "127.0.0.1:8081"; }
+}
+
+...and then just hit http://myapp, which will act as an alias for 127.0.0.1:8081.
+
