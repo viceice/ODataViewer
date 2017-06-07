@@ -19,6 +19,7 @@ namespace DataServicesViewer
     {
         public static void BuildTree(this TreeView source, MetaData metaData )
         {
+            source.BeginUpdate();
             TreeNode root = source.Nodes.Add( metaData.model.Name );
 
             TreeNode entitySet = root.Nodes.Add("EntitySet");
@@ -28,6 +29,7 @@ namespace DataServicesViewer
             {
                 entitySet.Nodes.Add(item.NameType).BuildEntity(item.Entity);
             }
+            source.EndUpdate();
         }
 
         public static void BuildEntity(this TreeNode source, Entity e)
