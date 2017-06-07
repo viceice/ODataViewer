@@ -25,6 +25,7 @@ namespace DataServicesViewer
         public string ServicePath 
         {
             get { return txbServicePath.Text; }
+            set => txbServicePath.Text = value;
         }
     }
 }

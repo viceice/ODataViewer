@@ -21,8 +21,8 @@ namespace DataServicesViewer
         const string ATOM = "{http://www.w3.org/2005/Atom}";
         const string META = "{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}";
         const string DS = "{http://schemas.microsoft.com/ado/2007/08/dataservices}";
-        
-        
+
+
         TreeNode NodeSelected;
         MetaData MetaData;
         string ServicePath;
@@ -42,7 +42,7 @@ namespace DataServicesViewer
             txbQuery.KeyDown += txbQuery_KeyDown;
             intellisenseWPFControl.SelectedItellisense += SelectedItellisense;
             intellisenseWPFControl.ToolTipChanged += intellisenseWPFControl_ToolTipChanged;
-            txbQuery.DataBindings.Add( "Text", intellisenseWPFControl, "Prefix" , false, DataSourceUpdateMode.OnPropertyChanged);
+            txbQuery.DataBindings.Add("Text", intellisenseWPFControl, "Prefix", false, DataSourceUpdateMode.OnPropertyChanged);
             WPFHost.DataBindings.Add("Visible", intellisenseWPFControl, "IsVisible", false, DataSourceUpdateMode.OnPropertyChanged);
             HideIntellisense();
         }
@@ -52,7 +52,7 @@ namespace DataServicesViewer
             if (string.IsNullOrEmpty(e.Intellisense)) return;
             IntellisenseToolTip.Text = e.Intellisense;
             Point newLoac = new Point(WPFHost.Location.X + WPFHost.Size.Width + 5,
-                                       WPFHost.Location.Y +5 );
+                                       WPFHost.Location.Y + 5);
             IntellisenseToolTip.Location = newLoac;
             IntellisenseToolTip.Visible = true;
             IntellisenseTimer.Start();
@@ -61,32 +61,32 @@ namespace DataServicesViewer
         {
             IntellisenseToolTip.Visible = false;
             IntellisenseTimer.Stop();
-        } 
+        }
         void SelectedItellisense(object sender, IntellisenseEventArgs e)
         {
-            if( !string.IsNullOrEmpty( e.Intellisense ) ) 
+            if (!string.IsNullOrEmpty(e.Intellisense))
                 txbQuery.Text = e.Intellisense;
 
             txbQuery.Focus();
             txbQuery.SelectionStart = txbQuery.Text.Length;
             HideIntellisense();
         }
-      
-        public string FullPath 
+
+        public string FullPath
         {
-            get 
+            get
             {
                 if (ServicePath.EndsWith("/"))
                     ServicePath = ServicePath.Substring(0, ServicePath.Length - 1);
                 return string.Format("{0}/{1}", ServicePath, txbQuery.Text);
             }
         }
-        
+
 
         void txbQuery_TextChanged(object sender, EventArgs e)
         {
             tslbl.Text = string.Format("{0}/{1}", ServicePath, txbQuery.Text);
-            
+
             ShowIntellisense();
         }
         void txbQuery_KeyDown(object sender, KeyEventArgs e)
@@ -112,14 +112,14 @@ namespace DataServicesViewer
             else if (e.KeyData == Keys.Down && WPFHost.Visible == true)
             {
                 intellisenseWPFControl.SelectedIndexDown();
-            }            
+            }
             else if (e.KeyData == Keys.Up && WPFHost.Visible == true)
             {
                 intellisenseWPFControl.SelectedIndexUp();
             }
         }
 
-        
+
         void btnGo_Click(object sender, EventArgs e)
         {
             QureyWebBrowser.Navigate(FullPath);
@@ -127,12 +127,12 @@ namespace DataServicesViewer
 
             try
             {
-                client.OpenReadAsync( new Uri( FullPath ) );
-                client.OpenReadCompleted += new OpenReadCompletedEventHandler( client_OpenReadCompleted );
+                client.OpenReadAsync(new Uri(FullPath));
+                client.OpenReadCompleted += new OpenReadCompletedEventHandler(client_OpenReadCompleted);
             }
-            catch ( Exception ex )
+            catch (Exception ex)
             {
-                MessageBox.Show( ex.Message );
+                MessageBox.Show(ex.Message);
             }
         }
         void client_OpenReadCompleted(object sender, OpenReadCompletedEventArgs e)
@@ -140,7 +140,7 @@ namespace DataServicesViewer
             try
             {
                 if (e.Error != null) return;
-                
+
                 XElement xe = XElement.Load(new StreamReader(e.Result));
                 IEnumerable<XElement> rows;
 
@@ -193,7 +193,7 @@ namespace DataServicesViewer
             EntityTree.Nodes.Clear();
             EntityTree.BuildTree(MetaData);
             EntityTree.ExpandAll();
-            
+
             intellisenseWPFControl.Start(MetaData);
             this.txbQuery.TextChanged += new System.EventHandler(this.txbQuery_TextChanged);
         }
@@ -208,16 +208,25 @@ namespace DataServicesViewer
             SetItellisenseLocation();
             WPFHost.Visible = true;
             intellisenseWPFControl.ShowIntelliSense(txbQuery.Text);
-        }        
+        }
         void SetItellisenseLocation()
         {
             WPFHost.Location = new Point(110 + txbQuery.Text.Length * 10, txbQuery.Location.Y + 30);
-        }        
+        }
         void OpenDataServiceConfigForm()
         {
-            dscf.ShowDialog();
+            var args = Environment.GetCommandLineArgs();
+            if (args.Length == 2 && Uri.IsWellFormedUriString(args[1], UriKind.Absolute))
+            {
+                dscf.ServicePath = ServicePath = args[1];
+            }
+            else
+            {
+                dscf.ShowDialog();
+                ServicePath = dscf.ServicePath;
+            }
+
             this.Show();
-            ServicePath = dscf.ServicePath;
 
             if (ServicePath.EndsWith("/"))
                 ServicePath = ServicePath.Substring(0, ServicePath.Length - 1);
@@ -237,12 +246,12 @@ namespace DataServicesViewer
         }
         private void tsBtnOpenWeb_Click(object sender, EventArgs e)
         {
-            Process.Start("Firefox.exe", FullPath.Replace( " " , "%20" ) );
+            Process.Start("Firefox.exe", FullPath.Replace(" ", "%20"));
         }
         private void copyToolStripButton_Click(object sender, EventArgs e)
         {
             Clipboard.SetText(FullPath);
-        } 
+        }
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Application.Exit();
@@ -254,7 +263,7 @@ namespace DataServicesViewer
         private void helpToolStripButton_Click(object sender, EventArgs e)
         {
             ShowIntellisense();
-        } 
+        }
         #endregion
 
         private void Shell_Load(object sender, EventArgs e)
@@ -263,20 +272,20 @@ namespace DataServicesViewer
         }
 
         #region TreeView
-        private void TreeViewExpandAll_Click( object sender, EventArgs e )
+        private void TreeViewExpandAll_Click(object sender, EventArgs e)
         {
             EntityTree.SelectedNode.ExpandAll();
-            
+
         }
-        private void TreeViewCollapse_Click( object sender, EventArgs e )
+        private void TreeViewCollapse_Click(object sender, EventArgs e)
         {
-            if (EntityTree.SelectedNode != null) 
+            if (EntityTree.SelectedNode != null)
                 EntityTree.SelectedNode.Collapse();
         }
 
-        void ShowMetadataTree_Click( object sender, EventArgs e )
+        void ShowMetadataTree_Click(object sender, EventArgs e)
         {
-            if ( this.mainSplitContainer.Panel1Collapsed )
+            if (this.mainSplitContainer.Panel1Collapsed)
             {
                 this.mainSplitContainer.Panel1Collapsed = false;
                 btnShowMetadataTree.Text = "Hide Metadata Tree";
@@ -287,9 +296,9 @@ namespace DataServicesViewer
                 btnShowMetadataTree.Text = "Show Metadata Tree";
             }
         }
-        void EntityTree_AfterSelect( object sender, TreeViewEventArgs e )
+        void EntityTree_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            if ( NodeSelected != null )
+            if (NodeSelected != null)
                 NodeSelected.BackColor = Color.White;
 
             e.Node.BackColor = Color.Yellow;
@@ -298,6 +307,6 @@ namespace DataServicesViewer
         }
         #endregion
 
-        
+
     }
 }
